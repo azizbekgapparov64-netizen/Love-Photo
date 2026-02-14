@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
+  <title>Love Photo Generator · yurak ramzi</title>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Playfair Display', serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #ffccd5, #ff8fab, #ff4d6d);
+      background-attachment: fixed;
+      padding: 1rem;
+      position: relative;
+      overflow-x: hidden;
+      animation: fadeInBody 1.4s ease;
+    }
+
+    @keyframes fadeInBody {
+      0% { opacity: 0; backdrop-filter: blur(10px); }
+      100% { opacity: 1; backdrop-filter: blur(0); }
+    }
+
+    /* Floating heart particles */
+    .floating-hearts {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .floating-hearts span {
+      position: absolute;
+      bottom: -40px;
+      width: 20px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.25);
+      box-shadow: 0 0 15px rgba(255, 77, 109, 0.4);
+      clip-path: path("M12 4.248c-3.148-5.402-12-3.825-12 2.944 0 4.661 5.571 9.427 12 15.808 6.43-6.381 12-11.147 12-15.808 0-6.792-8.875-8.306-12-2.944z");
+      transform: rotate(45deg) scale(0.6);
+      animation: floatUp 12s linear infinite;
+      opacity: 0.5;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(0) rotate(45deg) scale(0.6); opacity: 0.3; }
+      100% { transform: translateY(-120vh) rotate(45deg) scale(1.2); opacity: 0; }
+    }
+
+    /* main glass container */
+    .glass-container {
+      position: relative;
+      z-index: 10;
+      max-width: 1100px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(14px) saturate(180%);
+      -webkit-backdrop-filter: blur(14px) saturate(180%);
+      border-radius: 3rem 3rem 2rem 2rem;
+      box-shadow: 0 25px 50px -8px rgba(255, 0, 80, 0.4), inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+      padding: 2rem 1.5rem;
+      transition: all 0.2s;
+    }
+
+    h1 {
+      font-family: 'Great Vibes', cursive;
+      font-size: 3.2rem;
+      text-align: center;
+      color: #ffffff;
+      text-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+      letter-spacing: 1px;
+      margin-bottom: 0.5rem;
+      font-weight: 400;
+    }
+
+    .sub {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 2.5rem;
+      font-style: italic;
+      font-size: 1.1rem;
+      backdrop-filter: blur(4px);
+    }
+
+    /* heart canvas + preview zone */
+    .heart-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 2rem;
+    }
+
+    .heart-wrapper {
+      position: relative;
+      width: 500px;
+      height: 450px;
+      margin: 0 auto 1.5rem;
+      filter: drop-shadow(0 20px 35px rgba(255, 0, 80, 0.4));
+      transition: filter 0.3s ease;
+      animation: heartbeat 3s infinite ease-in-out;
+    }
+
+    .heart-wrapper:hover {
+      filter: drop-shadow(0 0 28px #ff4d6d) drop-shadow(0 10px 25px #ff8fab);
+    }
+
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      5% { transform: scale(1.008); }
+      10% { transform: scale(1); }
+      15% { transform: scale(1.012); }
+      20% { transform: scale(1); }
+    }
+
+    /* SVG heart mask definition (inline in html) */
+    .heart-svg-mask {
+      position: absolute;
+      width: 0;
+      height: 0;
+    }
+
+    #heartCanvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 20px; /* only for canvas, mask handles shape */
+      pointer-events: none; /* allow clicks to pass to file inputs */
+    }
+
+    /* image upload labels positioned absolutely over canvas */
+    .image-dropzone {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      z-index: 5;
+    }
+
+    .girl-zone, .boy-zone {
+      flex: 1;
+      height: 100%;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 20px;
+      color: white;
+      font-weight: 600;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.4);
+      font-size: 0.95rem;
+      background: rgba(0,0,0,0.05);
+      transition: 0.2s;
+      border-radius: 0 0 80px 80px;
+    }
+
+    .girl-zone:hover, .boy-zone:hover {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(3px);
+    }
+
+    .girl-zone span, .boy-zone span {
+      background: rgba(255,77,109,0.8);
+      padding: 6px 16px;
+      border-radius: 60px;
+      margin-bottom: 20px;
+      pointer-events: none;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    /* romantic text overlay */
+    .text-overlay-preview {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 8;
+      text-align: center;
+      padding: 0 20px;
+    }
+
+    .preview-text {
+      font-family: 'Great Vibes', cursive;
+      font-size: 48px;
+      color: white;
+      text-shadow: 0 4px 18px rgba(0,0,0,0.5), 0 0 10px #ff4d6d;
+      background: rgba(0,0,0,0.08);
+      padding: 0.2rem 1.5rem;
+      border-radius: 100px;
+      backdrop-filter: blur(1.5px);
+      transform: rotate(-2deg);
+      max-width: 80%;
+      line-height: 1.2;
+      word-break: break-word;
+    }
+
+    /* input panel */
+    .control-panel {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 1rem 1.2rem;
+      margin-top: 0.5rem;
+    }
+
+    .upload-buttons {
+      display: flex;
+      gap: 0.8rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .btn {
+      border: none;
+      background: linear-gradient(45deg, #ff4d6d, #ff8fab);
+      color: white;
+      font-weight: 600;
+      padding: 12px 30px;
+      border-radius: 50px;
+      font-size: 1rem;
+      letter-spacing: 0.5px;
+      box-shadow: 0 8px 20px rgba(255, 0, 80, 0.3);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255,255,255,0.4);
+      backdrop-filter: blur(4px);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 12px 28px #ff4d6d;
+      background: linear-gradient(45deg, #ff3b5c, #ff7a9c);
+    }
+
+    .btn:active {
+      transform: scale(0.98);
+    }
+
+    .text-input-area {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.8rem;
+      background: rgba(255,255,240,0.25);
+      backdrop-filter: blur(8px);
+      padding: 0.6rem 1.5rem;
+      border-radius: 60px;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    .text-input-area label {
+      color: white;
+      font-weight: 500;
+      text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    #loveText {
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      padding: 10px 20px;
+      border-radius: 40px;
+      min-width: 200px;
+      font-size: 1rem;
+      font-family: 'Playfair Display', serif;
+      border: 2px solid transparent;
+      transition: 0.2s;
+    }
+
+    #loveText:focus {
+      border-color: #ff4d6d;
+      outline: none;
+      box-shadow: 0 0 0 4px rgba(255,77,109,0.4);
+    }
+
+    /* hidden file inputs */
+    .hidden-input {
+      display: none;
+    }
+
+    /* download btn special */
+    .btn-download {
+      background: linear-gradient(145deg, #ff2b4d, #ff6b8b);
+      padding: 14px 40px;
+      font-size: 1.15rem;
+    }
+
+    /* mobile adjustments */
+    @media (max-width: 600px) {
+      .heart-wrapper {
+        width: 320px;
+        height: 288px; /* 500/450 = 320/288 */
+      }
+      .preview-text {
+        font-size: 28px !important;
+      }
+      .glass-container {
+        padding: 1rem;
+      }
+      h1 { font-size: 2.5rem; }
+      .control-panel {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .upload-buttons {
+        justify-content: center;
+      }
+      .text-input-area {
+        justify-content: center;
+        border-radius: 30px;
+      }
+      .girl-zone span, .boy-zone span {
+        font-size: 0.8rem;
+        padding: 4px 10px;
+        margin-bottom: 35px;
+      }
+    }
+
+    /* for desktop extra wide */
+    @media (min-width: 1200px) {
+      .heart-wrapper {
+        width: 550px;
+        height: 495px;
+      }
+    }
+
+    /* hidden canvas for final render */
+    #finalRenderCanvas {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <!-- floating particles hearts -->
+  <div class="floating-hearts" id="floatingHearts"></div>
+
+  <div class="glass-container">
+    <h1>Love Photo Generator</h1>
+    <div class="sub">ikki qalb — bir yurak</div>
+
+    <!-- main heart stage -->
+    <div class="heart-stage">
+      <div class="heart-wrapper" id="heartWrapper">
+        <!-- inline SVG mask definition -->
+        <svg class="heart-svg-mask" viewBox="0 0 100 90" preserveAspectRatio="none">
+          <defs>
+            <mask id="heartMask" maskContentUnits="objectBoundingBox" maskUnits="objectBoundingBox">
+              <!-- heart path scaled to 0..1: M 0.5,0.2 ... approximate perfect symmetric -->
+              <path d="M 0.5,0.18 
+                       C 0.7,0.02 0.95,0.15 0.95,0.36 
+                       C 0.95,0.54 0.78,0.68 0.5,0.86 
+                       C 0.22,0.68 0.05,0.54 0.05,0.36 
+                       C 0.05,0.15 0.3,0.02 0.5,0.18 Z" 
+                    fill="white" transform="scale(1, 0.98)"/>
+            </mask>
+          </defs>
+        </svg>
+
+        <!-- canvas where composition is drawn (preview) -->
+        <canvas id="heartCanvas" width="500" height="450"></canvas>
+
+        <!-- click zones for uploading images (invisible canvas overlay) -->
+        <div class="image-dropzone">
+          <div class="girl-zone" id="girlZone"><span>📸 Qiz rasmi</span></div>
+          <div class="boy-zone" id="boyZone"><span>📸 Bola rasmi</span></div>
+        </div>
+
+        <!-- romantic text preview (live) -->
+        <div class="text-overlay-preview">
+          <div class="preview-text" id="liveTextPreview">Aziz ❤️ Miro</div>
+        </div>
+      </div>
+
+      <!-- hidden file inputs -->
+      <input type="file" id="girlInput" class="hidden-input" accept="image/*">
+      <input type="file" id="boyInput" class="hidden-input" accept="image/*">
+    </div>
+
+    <!-- controls -->
+    <div class="control-panel">
+      <div class="upload-buttons">
+        <button class="btn" id="uploadGirlBtn"><span>👧</span> Qiz rasmi</button>
+        <button class="btn" id="uploadBoyBtn"><span>👦</span> Bola rasmi</button>
+      </div>
+      <div class="text-input-area">
+        <label for="loveText">💌 Matn:</label>
+        <input type="text" id="loveText" placeholder="Aziz ❤️ Miro" value="Aziz ❤️ Miro">
+      </div>
+      <button class="btn btn-download" id="downloadBtn">⬇️ Download PNG</button>
+    </div>
+  </div>
+
+  <!-- hidden canvas for final high‑res download -->
+  <canvas id="finalRenderCanvas" width="500" height="450"></canvas>
+
+  <script>
+    (function() {
+      // DOM elements
+      const canvas = document.getElementById('heartCanvas');
+      const ctx = canvas.getContext('2d');
+      const finalCanvas = document.getElementById('finalRenderCanvas');
+      const finalCtx = finalCanvas.getContext('2d');
+
+      const girlZone = document.getElementById('girlZone');
+      const boyZone = document.getElementById('boyZone');
+      const girlInput = document.getElementById('girlInput');
+      const boyInput = document.getElementById('boyInput');
+      const uploadGirlBtn = document.getElementById('uploadGirlBtn');
+      const uploadBoyBtn = document.getElementById('uploadBoyBtn');
+      const loveTextInput = document.getElementById('loveText');
+      const livePreview = document.getElementById('liveTextPreview');
+
+      // image storage
+      let girlImage = null;        // HTMLImageElement
+      let boyImage = null;
+
+      // Default demo images (we create two colored canvases as placeholder)
+      function createDefaultGirl() {
+        const img = new Image();
+        const canvas = document.createElement('canvas');
+        canvas.width = 200; canvas.height = 200;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffb6c1'; // light pink
+        ctx.fillRect(0,0,200,200);
+        ctx.fillStyle = '#ff4d6d';
+        ctx.font = 'bold 24px Playfair Display';
+        ctx.fillText('👧',70,120);
+        img.src = canvas.toDataURL();
+        return new Promise((resolve) => { img.onload = () => resolve(img); });
+      }
+      function createDefaultBoy() {
+        const img = new Image();
+        const canvas = document.createElement('canvas');
+        canvas.width = 200; canvas.height = 200;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#b0e0ff';
+        ctx.fillRect(0,0,200,200);
+        ctx.fillStyle = '#ff4d6d';
+        ctx.font = 'bold 24px Playfair Display';
+        ctx.fillText('👦',70,120);
+        img.src = canvas.toDataURL();
+        return new Promise((resolve) => { img.onload = () => resolve(img); });
+      }
+
+      // initialize with default images
+      Promise.all([createDefaultGirl(), createDefaultBoy()]).then(([girl, boy]) => {
+        girlImage = girl;
+        boyImage = boy;
+        drawHeartComposite();
+      });
+
+      // text live update
+      loveTextInput.addEventListener('input', function(e) {
+        let val = e.target.value.trim();
+        if (val === '') val = '💕'; 
+        livePreview.innerText = val;
+        drawHeartComposite();  // realtime preview on canvas also
+      });
+
+      // file uploads
+      function handleImageUpload(file, type) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const img = new Image();
+          img.onload = () => {
+            if (type === 'girl') {
+              girlImage = img;
+            } else {
+              boyImage = img;
+            }
+            drawHeartComposite();
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      }
+
+      girlInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) handleImageUpload(e.target.files[0], 'girl');
+      });
+      boyInput.addEventListener('change', (e) => {
+        if (e.target.files[0]) handleImageUpload(e.target.files[0], 'boy');
+      });
+
+      uploadGirlBtn.addEventListener('click', () => girlInput.click());
+      uploadBoyBtn.addEventListener('click', () => boyInput.click());
+
+      // drag & drop like feeling (zones already click)
+      girlZone.addEventListener('click', () => girlInput.click());
+      boyZone.addEventListener('click', () => boyInput.click());
+
+      // main draw function (also used for final canvas)
+      function drawHeartComposite() {
+        if (!girlImage || !boyImage) return;
+
+        // draw on preview canvas
+        drawOnCanvas(ctx, canvas.width, canvas.height);
+        // also draw on final canvas for download (same size)
+        drawOnCanvas(finalCtx, finalCanvas.width, finalCanvas.height);
+      }
+
+      function drawOnCanvas(context, w, h) {
+        context.clearRect(0, 0, w, h);
+
+        // 1. draw soft romantic gradient background (optional transparent inside heart, but we put background)
+        const gradient = context.createLinearGradient(0, 0, w*0.8, h);
+        gradient.addColorStop(0, '#ffccd5');
+        gradient.addColorStop(0.5, '#ff8fab');
+        gradient.addColorStop(1, '#ff4d6d');
+        context.fillStyle = gradient;
+        context.fillRect(0, 0, w, h);
+
+        // 2. apply heart mask: draw images then cut
+        context.save();
+
+        // define heart path exactly matching mask (for clip)
+        context.beginPath();
+        const heartPath = new Path2D();
+        // normalized coordinates scaled to w, h (same as mask)
+        heartPath.moveTo(0.5 * w, 0.18 * h);
+        heartPath.bezierCurveTo(0.7 * w, 0.02 * h, 0.95 * w, 0.15 * h, 0.95 * w, 0.36 * h);
+        heartPath.bezierCurveTo(0.95 * w, 0.54 * h, 0.78 * w, 0.68 * h, 0.5 * w, 0.86 * h);
+        heartPath.bezierCurveTo(0.22 * w, 0.68 * h, 0.05 * w, 0.54 * h, 0.05 * w, 0.36 * h);
+        heartPath.bezierCurveTo(0.05 * w, 0.15 * h, 0.3 * w, 0.02 * h, 0.5 * w, 0.18 * h);
+        context.closePath();
+        context.clip(heartPath); // everything inside heart shape
+
+        // 3. draw girl left half, boy right half
+        const half = w / 2;
+
+        // draw girl image (left half crop but fill area)
+        if (girlImage) {
+          const gw = girlImage.width, gh = girlImage.height;
+          const aspect = gw / gh;
+          // cover left half (width = half, height = h)
+          const drawWidth = half;
+          const drawHeight = h;
+          const scale = Math.max(drawWidth / gw, drawHeight / gh);
+          const sw = gw * scale;
+          const sh = gh * scale;
+          const sx = (sw - drawWidth) / 2;
+          const sy = (sh - drawHeight) / 2;
+
+          context.save();
+          context.beginPath();
+          context.rect(0, 0, half, h);
+          context.clip();
+          context.drawImage(girlImage, 0, 0, gw, gh, -sx, -sy, sw, sh);
+          context.restore();
+        }
+
+        // draw boy image (right half)
+        if (boyImage) {
+          const bw = boyImage.width, bh = boyImage.height;
+          const aspect = bw / bh;
+          const drawWidth = half;
+          const drawHeight = h;
+          const scale = Math.max(drawWidth / bw, drawHeight / bh);
+          const sw = bw * scale;
+          const sh = bh * scale;
+          const sx = (sw - drawWidth) / 2;
+          const sy = (sh - drawHeight) / 2;
+
+          context.save();
+          context.beginPath();
+          context.rect(half, 0, half, h);
+          context.clip();
+          context.drawImage(boyImage, 0, 0, bw, bh, half - sx, -sy, sw, sh);
+          context.restore();
+        }
+
+        context.restore(); // exit heart clip
+
+        // 4. draw text overlay (centered, romantic)
+        const text = loveTextInput.value.trim() || '💕';
+        context.font = '48px "Great Vibes", cursive';
+        context.fillStyle = '#ffffff';
+        context.shadowColor = 'rgba(0,0,0,0.5)';
+        context.shadowBlur = 18;
+        context.shadowOffsetX = 2;
+        context.shadowOffsetY = 2;
+        context.textAlign = 'center';
+        context.textBaseline = 'middle';
+        context.fillText(text, w/2, h/2);
+        context.shadowColor = 'transparent'; // reset
+
+        // 5. extra glow on heart border? we rely on css drop-shadow
+      }
+
+      // download final image
+      document.getElementById('downloadBtn').addEventListener('click', function() {
+        // ensure final canvas is fresh
+        drawOnCanvas(finalCtx, 500, 450);
+        // download as PNG
+        const link = document.createElement('a');
+        link.download = 'love-heart.png';
+        link.href = finalCanvas.toDataURL('image/png');
+        link.click();
+      });
+
+      // generate floating hearts
+      function createFloatingHearts() {
+        const container = document.getElementById('floatingHearts');
+        const count = 18;
+        for (let i = 0; i < count; i++) {
+          const span = document.createElement('span');
+          const size = 14 + Math.random() * 28;
+          span.style.width = size + 'px';
+          span.style.height = size + 'px';
+          span.style.left = Math.random() * 100 + '%';
+          span.style.animationDuration = 8 + Math.random() * 15 + 's';
+          span.style.animationDelay = Math.random() * 8 + 's';
+          span.style.transform = `rotate(45deg) scale(${0.3 + Math.random() * 0.7})`;
+          span.style.background = `rgba(255, 230, 240, ${0.2 + Math.random() * 0.3})`;
+          container.appendChild(span);
+        }
+      }
+      createFloatingHearts();
+
+      // initial draw
+      setTimeout(() => drawHeartComposite(), 100);
+    })();
+  </script>
+</body>
+</html>
